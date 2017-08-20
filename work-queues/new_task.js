@@ -10,6 +10,7 @@ function connectionServer(server='amqp://localhost'){
         }).catch((err) => {
             console.error('Error in connecting to rabbitMQ server')
             console.error(err)
+        
         })   
 }
 
@@ -17,21 +18,28 @@ function connectChannel(conn) {
     return conn.createChannel()
 }
 
-function receiveMessage() {
-    const server= 'amqp://localhost'
+
+
+
+function newTask() {
+    const server = 'amqp://localhost'
     connectionServer(server).then(conn => {
+        setTimeout(() => {
+            conn.close()
+            console.log('Connection closing')
+            process.exit(0)
+        }, 1000)
         return connectChannel(conn)
     }).then(ch => {
-        const queue = 'hello'
+        const queue = 'taskQueue'
         ch.assertQueue(queue, {durable:true})
-        console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", queue);
-        ch.consume(queue, (msg) => {
-            console.log(" [x] Received %s", msg.content.toString());
-        }, {noAck: false})
+        const msg = process.argv.slice(2).join(' ') || 'Hello World'
+        ch.sendToQueue(queue, Buffer.from(msg))
+        console.log(`[${Date.now()}] Sent '${msg}'`)
     })
 }
 
-receiveMessage()
+newTask()
 
  
 
